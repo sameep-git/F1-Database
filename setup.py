@@ -104,9 +104,9 @@ createPitStops = """
     driverID INT,
     raceID INT,
     stop INT,
-    position INT,
+    lap INT,
     time TIME,
-    duration DECIMAL(6, 3),
+    duration TIME(3),
     PRIMARY KEY (driverID, raceID, stop),
     FOREIGN KEY (driverID) REFERENCES drivers(driverID),
     FOREIGN KEY (raceID) REFERENCES races(raceID)
@@ -137,70 +137,88 @@ cur.execute(createConstStand)
 
 # Making DataFrames for all tables to import data from csv files :)
 
-# circuits = pd.read_csv("data/circuits.csv")
-# circuits.drop(['circuitRef', 'alt', 'url'], axis = 1, inplace=True)
+circuits = pd.read_csv("data/circuits.csv")
+circuits.drop(['circuitRef', 'alt', 'url'], axis = 1, inplace=True)
 
-# races = pd.read_csv("data/races.csv")
-# races.drop(['url','fp1_date','fp1_time','fp2_date','fp2_time','fp3_date','fp3_time','quali_date','quali_time','sprint_date','sprint_time'], axis=1, inplace=True)
-# races['time'].replace('\\N', '', inplace=True)
+races = pd.read_csv("data/races.csv")
+races.drop(['url','fp1_date','fp1_time','fp2_date','fp2_time','fp3_date','fp3_time','quali_date','quali_time','sprint_date','sprint_time'], axis=1, inplace=True)
+races['time'].replace('\\N', '', inplace=True)
 
-# constructors = pd.read_csv("data/constructors.csv")
-# constructors.drop(['constructorRef', 'url'], axis=1, inplace=True)
+constructors = pd.read_csv("data/constructors.csv")
+constructors.drop(['constructorRef', 'url'], axis=1, inplace=True)
 
-# drivers = pd.read_csv("data/drivers.csv")
-# drivers['number'].replace('\\N', 0, inplace=True)
-# drivers['code'].replace('\\N', 'XYZ', inplace=True)
-# drivers.drop(['driverRef', 'url'], axis=1, inplace=True)
+drivers = pd.read_csv("data/drivers.csv")
+drivers['number'].replace('\\N', 0, inplace=True)
+drivers['code'].replace('\\N', 'XYZ', inplace=True)
+drivers.drop(['driverRef', 'url'], axis=1, inplace=True)
 
-# status = pd.read_csv("data/status.csv")
+status = pd.read_csv("data/status.csv")
 
-# results = pd.read_csv("data/results.csv")
-# results = results[['resultId', 'driverId', 'raceId', 'constructorId', 'points', 'position', 'fastestLapTime', 'statusId']]
-# results['position'].replace('\\N', 0, inplace=True)
-# results['fastestLapTime'].replace('\\N', '', inplace=True)
+results = pd.read_csv("data/results.csv")
+results = results[['resultId', 'driverId', 'raceId', 'constructorId', 'points', 'position', 'fastestLapTime', 'statusId']]
+results['position'].replace('\\N', 0, inplace=True)
+results['fastestLapTime'].replace('\\N', '', inplace=True)
 
-# driver_standings = pd.read_csv("data/driver_standings.csv")
-# driver_standings.drop(['driverStandingsId', 'positionText'], axis=1, inplace=True)
+driver_standings = pd.read_csv("data/driver_standings.csv")
+driver_standings.drop(['driverStandingsId', 'positionText'], axis=1, inplace=True)
 
 lapTimes = pd.read_csv("data/lap_times.csv")
-lapTimes.drop(['miliseconds'], axis=1, inplace=True)
+lapTimes.drop(['milliseconds'], axis=1, inplace=True)
 
+pitStops = pd.read_csv("data/pit_stops.csv")
+pitStops.drop('milliseconds', axis=1, inplace=True)
+print(pitStops)
+
+constStands = pd.read_csv("data/constructor_standings.csv")
+constStands.drop(['constructorStandingsId', 'positionText'], axis=1, inplace=True)
 
 # -x-x-x-x-x-x-x-x-x-x-x-x-x
 # Inserting data into each table one by one
 
-# insertCircuits = """INSERT INTO circuits(circuitID, name, location, country, lat, lng) VALUES(%s, %s, %s, %s, %s, %s)"""
+insertCircuits = """INSERT INTO circuits(circuitID, name, location, country, lat, lng) VALUES(%s, %s, %s, %s, %s, %s)"""
 
-# for row in circuits.values.tolist():
-#     cur.execute(insertCircuits, tuple(row))
+for row in circuits.values.tolist():
+    cur.execute(insertCircuits, tuple(row))
 
-# insertRaces = """INSERT INTO races(raceID,year,round,circuitID,name,date,time) VALUES(%s, %s, %s, %s, %s, %s, %s)"""
+insertRaces = """INSERT INTO races(raceID,year,round,circuitID,name,date,time) VALUES(%s, %s, %s, %s, %s, %s, %s)"""
 
-# for row in races.values.tolist():
-#     cur.execute(insertRaces, tuple(row))
+for row in races.values.tolist():
+    cur.execute(insertRaces, tuple(row))
 
-# insertConstructors = """INSERT INTO constructors(constructorID, name, nationality) VALUES(%s, %s, %s)"""
-# for row in constructors.values.tolist():
-#     cur.execute(insertConstructors, tuple(row))
+insertConstructors = """INSERT INTO constructors(constructorID, name, nationality) VALUES(%s, %s, %s)"""
+for row in constructors.values.tolist():
+    cur.execute(insertConstructors, tuple(row))
 
-# insertDrivers = """INSERT INTO drivers(driverID, number, code, forename, surname, dob, nationality) VALUES(%s, %s, %s, %s, %s, %s, %s)"""
-# for row in drivers.values.tolist():
-#     print(row)
-#     cur.execute(insertDrivers, tuple(row))
+insertDrivers = """INSERT INTO drivers(driverID, number, code, forename, surname, dob, nationality) VALUES(%s, %s, %s, %s, %s, %s, %s)"""
+for row in drivers.values.tolist():
+    print(row)
+    cur.execute(insertDrivers, tuple(row))
 
-# insertStatus = """INSERT INTO status(statusID, description) VALUES(%s, %s)"""
-# for row in status.values.tolist():
-#     cur.execute(insertStatus, tuple(row))
+insertStatus = """INSERT INTO status(statusID, description) VALUES(%s, %s)"""
+for row in status.values.tolist():
+    cur.execute(insertStatus, tuple(row))
 
-# insertResults = """INSERT INTO results(resultID, driverID, raceID, constructorID, points, position, fastestLapTime, statusID) VALUES (%s, %s, %s, %s, %s, %s, %s, %s)"""
-# for row in results.values.tolist():
-#     cur.execute(insertResults, tuple(row))
+insertResults = """INSERT INTO results(resultID, driverID, raceID, constructorID, points, position, fastestLapTime, statusID) VALUES (%s, %s, %s, %s, %s, %s, %s, %s)"""
+for row in results.values.tolist():
+    cur.execute(insertResults, tuple(row))
     
-# insertDriverStand = """INSERT INTO driverStandings(raceID, driverID, points, position, wins) VALUES(%s, %s, %s, %s, %s)"""
-# for row in driver_standings.values.tolist():
-#     cur.execute(insertDriverStand, tuple(row))
+insertDriverStand = """INSERT INTO driverStandings(raceID, driverID, points, position, wins) VALUES(%s, %s, %s, %s, %s)"""
+for row in driver_standings.values.tolist():
+    cur.execute(insertDriverStand, tuple(row))
     
+insertLapTimes = """INSERT INTO lapTimes(raceID, driverID, lap, position, time) VALUES(%s, %s, %s, %s, %s)"""
+for row in lapTimes.values.tolist():
+    cur.execute(insertLapTimes, tuple(row))
+
+insertPitStops = """INSERT INTO pitStops(raceID, driverID, stop, lap, time, duration) VALUES(%s, %s, %s, %s, %s, %s)"""
+for row in pitStops.values.tolist():
+    cur.execute(insertPitStops, tuple(row))
+    
+insertConstStands = """INSERT INTO constructorStandings(raceID, constructorID, points, position, wins) VALUES(%s, %s, %s, %s, %s)"""
+for row in constStands.values.tolist():
+    cur.execute(insertConstStands, tuple(row))
+
 conn.commit()
-cur.execute("SELECT * FROM driverStandings;")
+cur.execute("SELECT * FROM constructorStandings;")
 print(cur.fetchall())
 conn.close()
