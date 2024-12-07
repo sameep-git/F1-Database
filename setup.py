@@ -19,7 +19,7 @@ createCircuits = """
     circuitID INT PRIMARY KEY NOT NULL,
     name VARCHAR(60) NOT NULL,
     location VARCHAR(30),
-    country VARCHAR(20),
+    country VARCHAR(20) NOT NULL,
     lat DECIMAL(10, 6),
     lng DECIMAL(10, 6)
     );"""
@@ -27,13 +27,16 @@ createCircuits = """
 createRaces = """
     CREATE TABLE IF NOT EXISTS races (
     raceID INT PRIMARY KEY NOT NULL,
-    circuitID INT,
+    circuitID INT NOT NULL,
     name VARCHAR(60) NOT NULL,
     year INT NOT NULL,
     date DATE,
     time TIME,
     round INT,
-    FOREIGN KEY (circuitID) REFERENCES circuits(circuitID)
+    FOREIGN KEY (circuitID) 
+        REFERENCES circuits(circuitID) 
+        ON UPDATE CASCADE
+        ON DELETE RESTRICT
     );"""
 
 createConstructor = """
@@ -46,8 +49,8 @@ createConstructor = """
 createDrivers = """
     CREATE TABLE IF NOT EXISTS drivers (
     driverID INT PRIMARY KEY,
-    forename VARCHAR(25),
-    surname VARCHAR(30),
+    forename VARCHAR(25) NOT NULL,
+    surname VARCHAR(30) NOT NULL,
     number INT NOT NULL,
     code CHAR(3),
     nationality VARCHAR(20) NOT NULL,
@@ -62,54 +65,81 @@ createStatus = """
 
 createResults = """
     CREATE TABLE IF NOT EXISTS results (
-    resultID INT PRIMARY KEY,
-    driverID INT,
-    raceID INT,
-    constructorID INT,
+    resultID INT PRIMARY KEY AUTO_INCREMENT,
+    driverID INT NOT NULL,
+    raceID INT NOT NULL,
+    constructorID INT NOT NULL,
     points INT,
-    position INT,
+    position INT NOT NULL,
     fastestLapTime TIME,
     statusID INT,
-    FOREIGN KEY (driverID) REFERENCES drivers(driverID),
-    FOREIGN KEY (raceID) REFERENCES races(raceID),
-    FOREIGN KEY (statusID) REFERENCES status(statusID)
+    FOREIGN KEY (driverID)
+        REFERENCES drivers(driverID)
+        ON UPDATE CASCADE
+        ON DELETE RESTRICT,
+    FOREIGN KEY (raceID) 
+        REFERENCES races(raceID)
+        ON UPDATE CASCADE
+        ON DELETE RESTRICT,
+    FOREIGN KEY (statusID)
+        REFERENCES status(statusID)
+        ON UPDATE CASCADE
+        ON DELETE RESTRICT
     );"""
 
 createDriverStandings = """
     CREATE TABLE IF NOT EXISTS driverStandings (
-    driverID INT,
-    raceID INT,
+    driverID INT NOT NULL,
+    raceID INT NOT NULL,
     wins INT,
     points INT,
     position INT,
     PRIMARY KEY (driverID, raceID),
-    FOREIGN KEY (driverID) REFERENCES drivers(driverID),
-    FOREIGN KEY (raceID) REFERENCES races(raceID)
+    FOREIGN KEY (driverID) 
+        REFERENCES drivers(driverID)
+        ON UPDATE CASCADE
+        ON DELETE RESTRICT,
+    FOREIGN KEY (raceID)
+        REFERENCES races(raceID)
+        ON UPDATE CASCADE
+        ON DELETE RESTRICT
     );"""
 
 createLapTimes = """
     CREATE TABLE IF NOT EXISTS lapTimes (
-    driverID INT,
-    raceID INT,
-    lap INT,
+    driverID INT NOT NULL,
+    raceID INT NOT NULL,
+    lap INT NOT NULL,
     position INT,
-    time TIME,
+    time TIME NOT NULL,
     PRIMARY KEY (driverID, raceID, lap),
-    FOREIGN KEY (driverID) REFERENCES drivers(driverID),
-    FOREIGN KEY (raceID) REFERENCES races(raceID)
+    FOREIGN KEY (driverID)
+        REFERENCES drivers(driverID)
+        ON UPDATE CASCADE
+        ON DELETE RESTRICT,
+    FOREIGN KEY (raceID)
+        REFERENCES races(raceID)
+        ON UPDATE CASCADE
+        ON DELETE RESTRICT
     );"""
 
 createPitStops = """
     CREATE TABLE IF NOT EXISTS pitStops (
-    driverID INT,
-    raceID INT,
-    stop INT,
+    driverID INT NOT NULL,
+    raceID INT NOT NULL,
+    stop INT NOT NULL,
     lap INT,
     time TIME,
-    duration TIME(3),
+    duration TIME(3) NOT NULL,
     PRIMARY KEY (driverID, raceID, stop),
-    FOREIGN KEY (driverID) REFERENCES drivers(driverID),
-    FOREIGN KEY (raceID) REFERENCES races(raceID)
+    FOREIGN KEY (driverID)
+        REFERENCES drivers(driverID)
+        ON UPDATE CASCADE
+        ON DELETE RESTRICT,
+    FOREIGN KEY (raceID)
+        REFERENCES races(raceID)
+        ON UPDATE CASCADE
+        ON DELETE RESTRICT
     );"""
 
 createConstStand = """
@@ -120,8 +150,14 @@ createConstStand = """
     points INT,
     position INT,
     PRIMARY KEY (raceID, constructorID),
-    FOREIGN KEY (raceID) REFERENCES races(raceID),
-    FOREIGN KEY (constructorID) REFERENCES constructors(constructorID)
+    FOREIGN KEY (raceID)
+        REFERENCES races(raceID)
+        ON UPDATE CASCADE
+        ON DELETE RESTRICT,
+    FOREIGN KEY (constructorID)
+        REFERENCES constructors(constructorID)
+        ON UPDATE CASCADE
+        ON DELETE RESTRICT
     );"""
 
 cur.execute(createCircuits)
@@ -167,7 +203,6 @@ lapTimes.drop(['milliseconds'], axis=1, inplace=True)
 
 pitStops = pd.read_csv("data/pit_stops.csv")
 pitStops.drop('milliseconds', axis=1, inplace=True)
-print(pitStops)
 
 constStands = pd.read_csv("data/constructor_standings.csv")
 constStands.drop(['constructorStandingsId', 'positionText'], axis=1, inplace=True)
@@ -191,7 +226,6 @@ for row in constructors.values.tolist():
 
 insertDrivers = """INSERT INTO drivers(driverID, number, code, forename, surname, dob, nationality) VALUES(%s, %s, %s, %s, %s, %s, %s)"""
 for row in drivers.values.tolist():
-    print(row)
     cur.execute(insertDrivers, tuple(row))
 
 insertStatus = """INSERT INTO status(statusID, description) VALUES(%s, %s)"""
@@ -219,6 +253,7 @@ for row in constStands.values.tolist():
     cur.execute(insertConstStands, tuple(row))
 
 conn.commit()
-cur.execute("SELECT * FROM constructorStandings;")
-print(cur.fetchall())
+# cur.execute("SELECT * FROM results;")
+# print(cur.fetchall())
+print("ALL OK")
 conn.close()
