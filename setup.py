@@ -253,7 +253,5 @@ for row in constStands.values.tolist():
     cur.execute(insertConstStands, tuple(row))
 
 conn.commit()
-# cur.execute("SELECT * FROM results;")
-# print(cur.fetchall())
 print("ALL OK")
 conn.close()

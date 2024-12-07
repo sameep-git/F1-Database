@@ -4,6 +4,16 @@ from simple_term_menu import TerminalMenu
 from tabulate import tabulate
 
 def create_connection():
+    """
+    This creates a connection to the MySQL localhost with f1 database
+    
+    Args:
+        None
+    
+    Returns:
+        PooledMySQLConnection|MySQLConnectionAbstract: MySQL connection with the localhost and f1 database
+    
+    """
     conn = mysql.connector.connect(
         user = 'root',
         password = 'root',
@@ -13,6 +23,16 @@ def create_connection():
     return conn
 
 def all_country_circuits(conn, country):
+    """
+    This lists all the circuits in a user input country.
+    
+    Args:
+        PooledMySQLConnection|MySQLConnectionAbstract: MySQL connection with the localhost and f1 database
+        string: Country name
+        
+    Returns:
+        None
+    """
     cursor = conn.cursor()
     cursor.execute("""
                     select circuitID, name, location
@@ -27,6 +47,17 @@ def all_country_circuits(conn, country):
     cursor.close()
 
 def driver_teams(conn, driverID):
+    """
+    driverID, forename, surname, constructorName and race_count
+ 	of all teams the driver with driverID has raced with.
+    
+    Args:
+        PooledMySQLConnection|MySQLConnectionAbstract: MySQL connection with the localhost and f1 database
+        int: driverID
+        
+    Returns:
+        None
+    """
     cursor = conn.cursor()
     cursor.execute("""
                    select d.driverID, d.forename as first_name, d.surname as last_name, c.name as team_name, count(*) as race_count
@@ -45,6 +76,17 @@ def driver_teams(conn, driverID):
     cursor.close()
 
 def team_most_wins(conn):
+    """
+    Returns the team with the most number of wins. Columns
+    returned are teamID, teamName and win_count
+    
+    Args:
+        PooledMySQLConnection|MySQLConnectionAbstract: MySQL connection with the localhost and f1 database
+        int: driverID
+        
+    Returns:
+        None
+    """
     cursor = conn.cursor()
     cursor.execute("""
                    SELECT c.constructorID as team_ID, c.name as team_name, COUNT(*) AS win_count
@@ -70,6 +112,18 @@ def team_most_wins(conn):
     cursor.close()
     
 def sum_pit_stops(conn, year):
+    """
+    Selects all drivers that raced in the 2012 season and sums up
+    their total pit stops durations for that season and groups the
+    result by driverID and orders by total duration in ascending order.
+    
+    Args:
+        PooledMySQLConnection|MySQLConnectionAbstract: MySQL connection with the localhost and f1 database
+        int: year of the season we are interested in
+        
+    Returns:
+        None
+    """
     cursor = conn.cursor()
     cursor.execute("""
                     SELECT d.driverID as driver_ID, d.forename as first_name, d.surname as last_name, sum(ps.duration) as total_pit_stops_time
@@ -87,10 +141,21 @@ def sum_pit_stops(conn, year):
     if len(res) > 0:
         print(tabulate(res, headers=['driverID', 'first_name', 'last_name', 'total_pit_stops_time'], tablefmt='psql'))
     else:
-        print("No teams found :(")
+        print("No records found :(")
     cursor.close()
 
 def insert_result(conn, data):
+    """
+    Inserts a row of result into the results table
+    for raceID and for driverID
+    
+    Args:
+        PooledMySQLConnection|MySQLConnectionAbstract: MySQL connection with the localhost and f1 database
+        [int, int, int, int, int, string, int]: listed data in the order (driverID, raceID, constructorID, points, position, fastestLapTime, statusID)
+        
+    Returns:
+        None
+    """
     cursor = conn.cursor()
     try:
         cursor.execute('INSERT INTO results (driverID, raceID, constructorID, points, position, fastestLapTime, statusID) VALUES (%s, %s, %s, %s, %s, %s, %s);', data)
@@ -103,6 +168,16 @@ def insert_result(conn, data):
     cursor.close()
 
 def delete_result(conn, data):
+    """
+    Deletes the result for raceID and driverID
+    
+    Args:
+        PooledMySQLConnection|MySQLConnectionAbstract: MySQL connection with the localhost and f1 database
+        [int, int]: lsited data in the order (raceID, driverID)
+        
+    Returns:
+        None
+    """
     cursor = conn.cursor()
     try:
         cursor.execute('DELETE FROM results WHERE raceID = %s AND driverID = %s;', data)
@@ -115,6 +190,16 @@ def delete_result(conn, data):
     cursor.close()
        
 def update_constructorID(conn, data):
+    """
+    Update constructorID of a constructor to another
+    
+    Args:
+        PooledMySQLConnection|MySQLConnectionAbstract: MySQL connection with the localhost and f1 database
+        [int, int]: lsited data in the order (new constructorID, old constructorID)
+        
+    Returns:
+        None
+    """
     cursor = conn.cursor()
     try:
         cursor.execute("""
@@ -130,6 +215,16 @@ def update_constructorID(conn, data):
     cursor.close()
 
 def delete_driver(conn, data):
+    """
+    Delete a driver from the database using driverID
+    
+    Args:
+        PooledMySQLConnection|MySQLConnectionAbstract: MySQL connection with the localhost and f1 database
+        int: driverID to be deleted
+        
+    Returns:
+        None
+    """
     cursor = conn.cursor()
     try:
         cursor.execute("""
@@ -144,12 +239,21 @@ def delete_driver(conn, data):
     cursor.close()
 
 def menu(conn):
+    """
+    Sets up a dynamic menu to choose queries from using simple_term_menu
+    
+    Args:
+        PooledMySQLConnection|MySQLConnectionAbstract: MySQL connection with the localhost and f1 database
+        
+    Returns:
+        None
+    """
     # Type out the menu forever so user can choose the next option
     while True:
         options = ["[1] Get all circuits located in specific country", "[2] List all teams a driver has raced with", "[3] List the team with the most wins",
                 "[4] List all the drivers with sum of their pit stop times for a particular season", "[5] Insert a row into the results table", "[6] Delete a row from the results table",
                 "[7] Update constructorID for a team", "[8] Delete a driver with a driverID", "[9] Exit this CLI"]
-        terminal_menu = TerminalMenu(options)
+        terminal_menu = TerminalMenu(options, title="F1-Database", shortcut_key_highlight_style=("fg_purple",))
         menu_entry_index = terminal_menu.show()
         choice = menu_entry_index + 1
         match choice:
@@ -192,20 +296,19 @@ def menu(conn):
                 driverID = int(input("driverID => "))
                 delete_driver(conn, [driverID])
             case 9:
-                print("Bye ... bye")
                 return
             case default:
                 print("Invalid choice :(")
                 continue
         
-        another_query_options = ["Yes", "No"]
-        another_query_trm = TerminalMenu(another_query_options)
-        print("Would you like to make another query?")
+        another_query_options = ["[1] Yes", "[0] No"]
+        another_query_trm = TerminalMenu(another_query_options, shortcut_key_highlight_style=("fg_purple",), title="Would you like to make another query?")
         another_query_index = another_query_trm.show()
         if another_query_index == 0:
             os.system('cls' if os.name == 'nt' else 'clear')
             continue
         else:
+            os.system('cls' if os.name == 'nt' else 'clear')
             return
 
 def main():
