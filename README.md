@@ -25,4 +25,6 @@ The data is a collection of information of F1 races from 1950 onwards. It includ
 	 `python3 setup.py`
  4. Run the CLI app by:
 	 `python3 front_end.py`
-	
+
+### Usage Preview:
+https://github.com/user-attachments/assets/7eca4fb3-135c-42e6-8879-94a5b7691091
