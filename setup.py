@@ -1,7 +1,5 @@
 import mysql.connector
 import pandas as pd
-import numpy as np
-import sqlalchemy
 
 conn = mysql.connector.connect(
     user = 'root',

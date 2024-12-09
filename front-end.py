@@ -1,7 +1,7 @@
 import mysql.connector
 import os
-from simple_term_menu import TerminalMenu
 from tabulate import tabulate
+import cutie
 
 def create_connection():
     """
@@ -37,13 +37,13 @@ def all_country_circuits(conn, country):
     cursor.execute("""
                     select circuitID, name, location
                     from circuits
-                    where country = %s;
+                    where country = (%s);
                    """, [country])
     res = cursor.fetchall()
     if len(res) > 0:
         print(tabulate(res, headers=['circuitID', 'name', 'location'], tablefmt='psql'))
     else:
-        print("No results found :(")
+        print("\033[31mNo results found :(\033[0m")
     cursor.close()
 
 def driver_teams(conn, driverID):
@@ -64,7 +64,7 @@ def driver_teams(conn, driverID):
                     from drivers d
                     join results r on d.driverID = r.driverID
                     join constructors c on r.constructorID = c.constructorID
-                    where d.driverID = %s
+                    where d.driverID = (%s)
                     group by c.constructorID
                     order by c.name ASC;
                    """, [driverID])
@@ -72,7 +72,7 @@ def driver_teams(conn, driverID):
     if len(res) > 0:
         print(tabulate(res, headers=['driverID', 'first_name', 'last_name', 'team_name', 'race_count'], tablefmt='psql'))
     else:
-        print("No such driver found :(")
+        print("\033[31mNo such driver found :(\033[0m")
     cursor.close()
 
 def team_most_wins(conn):
@@ -108,7 +108,7 @@ def team_most_wins(conn):
     if len(res) > 0:
         print(tabulate(res, headers=['teamID', 'team_name', 'win_count'], tablefmt='psql'))
     else:
-        print("No teams found :(")
+        print("\033[31mNo teams found :(\033[0m")
     cursor.close()
     
 def sum_pit_stops(conn, year):
@@ -132,7 +132,7 @@ def sum_pit_stops(conn, year):
                     WHERE ps.raceID in (
                         SELECT raceID
                         FROM races
-                        WHERE year = %s
+                        WHERE year = (%s)
                     )
                     GROUP BY d.driverID
                     ORDER BY total_pit_stops_time ASC;
@@ -141,7 +141,7 @@ def sum_pit_stops(conn, year):
     if len(res) > 0:
         print(tabulate(res, headers=['driverID', 'first_name', 'last_name', 'total_pit_stops_time'], tablefmt='psql'))
     else:
-        print("No records found :(")
+        print("\033[31mNo records found :(\033[0m")
     cursor.close()
 
 def insert_result(conn, data):
@@ -158,9 +158,11 @@ def insert_result(conn, data):
     """
     cursor = conn.cursor()
     try:
-        cursor.execute('INSERT INTO results (driverID, raceID, constructorID, points, position, fastestLapTime, statusID) VALUES (%s, %s, %s, %s, %s, %s, %s);', data)
+        cursor.execute('INSERT INTO results (driverID, raceID, constructorID, points, position, fastestLapTime, statusID) VALUES ((%s), (%s), (%s), (%s), (%s), (%s), (%s));', data)
         conn.commit()
+        print("\033[32mSuccessfully added row:", data, " to results!\033[0m")
     except mysql.connector.Error as err:
+        print("\033[31mCould not insert the row :(\033[0m")
         print(err)
         print("Error Code:", err.errno)
         print("SQLSTATE", err.sqlstate)
@@ -180,9 +182,14 @@ def delete_result(conn, data):
     """
     cursor = conn.cursor()
     try:
-        cursor.execute('DELETE FROM results WHERE raceID = %s AND driverID = %s;', data)
+        cursor.execute("SELECT * FROM results WHERE raceID = (%s) AND driverID = (%s);", data)
+        res = cursor.fetchall()
+        cursor.execute('DELETE FROM results WHERE raceID = (%s) AND driverID = (%s);', data)
         conn.commit()
+        print("\033[32mSuccessfully removed the following row from results:\033[0m")
+        print(tabulate(res, headers=['resultID', 'driverID', 'raceID', 'constructorID', 'points', 'fastestLapTime', 'statusID'], tablefmt='psql'))
     except mysql.connector.Error as err:
+        print("\033[31mCould not delete the row\033[0m")
         print(err)
         print("Error Code:", err.errno)
         print("SQLSTATE", err.sqlstate)
@@ -204,10 +211,12 @@ def update_constructorID(conn, data):
     try:
         cursor.execute("""
                         UPDATE constructors
-                        SET constructorID = %s
-                        WHERE constructorID = %s;""", data)
+                        SET constructorID = (%s)
+                        WHERE constructorID = (%s);""", data)
         conn.commit()
+        print(f"\033[32mUpdated constructorID = {data[1]} to constructorID = {data[0]}\033[0m")
     except mysql.connector.Error as err:
+        print("\033[31mCould not update the constructorID\033[0m")
         print(err)
         print("Error Code:", err.errno)
         print("SQLSTATE", err.sqlstate)
@@ -229,9 +238,10 @@ def delete_driver(conn, data):
     try:
         cursor.execute("""
                         DELETE FROM drivers
-                        WHERE driverID = %s;""", data)
+                        WHERE driverID = (%s);""", data)
         conn.commit()
     except mysql.connector.Error as err:
+        print(f"\033[31mCould not delete driver with driverID = {data}\033[0m")
         print(err)
         print("Error Code:", err.errno)
         print("SQLSTATE", err.sqlstate)
@@ -250,12 +260,13 @@ def menu(conn):
     """
     # Type out the menu forever so user can choose the next option
     while True:
-        options = ["[1] Get all circuits located in specific country", "[2] List all teams a driver has raced with", "[3] List the team with the most wins",
-                "[4] List all the drivers with sum of their pit stop times for a particular season", "[5] Insert a row into the results table", "[6] Delete a row from the results table",
-                "[7] Update constructorID for a team", "[8] Delete a driver with a driverID", "[9] Exit this CLI"]
-        terminal_menu = TerminalMenu(options, title="F1-Database", shortcut_key_highlight_style=("fg_purple",))
-        menu_entry_index = terminal_menu.show()
-        choice = menu_entry_index + 1
+        options = ["Get all circuits located in specific country", "List all teams a driver has raced with", "List the team with the most wins",
+                "List all the drivers with sum of their pit stop times for a particular season", "Insert a row into the results table", 
+                "Delete a row from the results table", "Update constructorID for a team", "Delete a driver with a driverID", "Exit this CLI"]
+
+        print("F1 Database:")
+        choice = cutie.select(options) + 1
+        os.system('cls' if os.name == 'nt' else 'clear')
         match choice:
             case 1:
                 country = input("What country's circuits would you like to list? => ")
@@ -301,10 +312,8 @@ def menu(conn):
                 print("Invalid choice :(")
                 continue
         
-        another_query_options = ["[1] Yes", "[0] No"]
-        another_query_trm = TerminalMenu(another_query_options, shortcut_key_highlight_style=("fg_purple",), title="Would you like to make another query?")
-        another_query_index = another_query_trm.show()
-        if another_query_index == 0:
+        yes_no_trm = cutie.prompt_yes_or_no("Would you like to make another query?")
+        if yes_no_trm == 1:
             os.system('cls' if os.name == 'nt' else 'clear')
             continue
         else:
